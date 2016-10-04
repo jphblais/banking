@@ -1,0 +1,33 @@
+{
+  "name": "banking-account-transaction-aggregator",
+  "version": "1.0.0",
+  "description": "Read Banking OFX files to categorize transactions and build reporting.",
+  "main": "processOfxFile.js",
+  "dependencies": {
+    "argv": "0.0.2",
+    "assert": "^1.4.1",
+    "banking": "^1.0.1",
+    "bluebird": "^3.4.6",
+    "lodash": "^4.16.2",
+    "mongodb": "^2.2.9",
+    "traverse": "^0.6.6",
+    "util": "^0.10.3",
+    "xml-parser": "^1.2.1",
+    "xml2js": "^0.4.17"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.1.0"
+  },
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha",
+    "coverage": "./node_modules/.bin/istanbul cover _mocha -- -R spec"
+  },
+  "keywords": [
+    "banking",
+    "reporting"
+  ],
+  "author": "Jean-Philippe Blais",
+  "license": "ISC"
+}
