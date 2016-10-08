@@ -1,73 +1,49 @@
 'use strict';
 
-console.log(process.argv);
-
 var _ = require('lodash');
 var Promise = require('bluebird');
-var MongoDB = require('mongodb');
 var assert = require('assert');
-var inspect = require('util').inspect;
-var argv = require('argv');
-var ofxParserService = require('./lib/OFXParserService');
+const commandLineArgs = require('command-line-args')
 
-var args = argv.option(
-  [ {
-    name: 'file',
-    short: 'f',
-    type: 'path'
-  } ]).run();
+const optionDefinitions = [
+  { name: 'files', type: String, multiple: true, defaultOption: true }
+];
+
+const options = commandLineArgs(optionDefinitions);
 
 var ofxFilename = null;
-if (!args.options.file) {
-  console.error('Please provide --file option');
+
+if (!options.files) {
+  console.error('Please provide --files option');
   return 1;
 } else {
-  ofxFilename = args.options.file;
-  console.log(ofxFilename);
+  ofxFilename = options.files[0];
 }
 
-Promise.promisifyAll(MongoDB);
+var OfxExtractor = require('./lib/OfxExtractor');
+var normalize = require('./lib/NormaliserService');
+var bulkSave = require('./lib/BulkPersistService');
 
-// Connection URL
-var url = 'mongodb://localhost:27017/banking';
+var models = require('./models');
 
-function mapper(row) {
-  return {
-    transactionType: row.TRNTYPE,
-    date: row.DTPOSTED,
-    amount: row.TRNAMT,
-    transactionId: row.FITID,
-    description: row.NAME
-  };
-}
+var stats = {
+  created: 0,
+  duplicates: 0
+};
 
-function processData (data) {
-  MongoDB.MongoClient.connect(url)
-    .then(function (mongoClient) {
-      console.log('Connected correctly to server');
+var extractor = new OfxExtractor(ofxFilename);
+extractor.run()
+  .then(normalize)
+  .then(function (data) {
+    return bulkSave(data, models.Transaction, stats)
+  })
+  .then(Promise.all)
+  .then(function() {
+     console.log('all saved');
+     console.log('nbNew = ' + stats.created);
+     console.log('nbDuplicates = ' + stats.duplicates);
+   })
+  .then(function () {
+     models.mongoose.connection.close();
+   });
 
-      // console.log(inspect(data, { colors: false, depth: Infinity }));
-
-      var transactions = mongoClient.collection('transactions');
-      _.forEach(data.trx, function (row) {
-        var doc = mapper(row);
-        doc.account = data.account;
-        console.log(doc);
-        transactions.insertOne(doc, null, function(err, result) {
-          assert.equal(err, null);
-          assert.equal(1, result.result.n);
-          assert.equal(1, result.ops.length);
-          console.log("Inserted document into the collection");
-        });
-      });
-
-      mongoClient.close();
-    })
-    .catch(function (err) {
-      console.log('Oupsie!  An error occurred.');
-      console.log(err);
-    });
-}
-
-ofxParserService.parse(ofxFilename)
-  .then(processData);
