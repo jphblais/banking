@@ -40,5 +40,5 @@ jspm_packages
 .idea
 
 # Sensible working & test files
-*.?fx
-*test*.js
+/*.?fx
+/*test*.js

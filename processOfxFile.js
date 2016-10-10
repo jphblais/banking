@@ -30,7 +30,7 @@ var worker = _.map(options.files, function (filename) {
   };
   var extractor = new OfxExtractor(filename);
   return extractor.run()
-    .then(normalize)
+    .then(normalize.transactions)
     .then(function (data) {
       return bulkSave(data, models.Transaction, stats)
     })
